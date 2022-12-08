@@ -3,6 +3,7 @@ function [V,g_a,g_c]=egm(p,m)
 % This function computes the policy functions for assets and consumption
 % using the endogenous grid method.
 %---------------------------------------------------------------------------------------------------------------------------
+a=zeros(p.nzz,p.naa,p.nZZ,p.nKK);
 g_a=zeros(p.nzz,p.naa,p.nZZ,p.nKK);
 g_c=zeros(p.nzz,p.naa,p.nZZ,p.nKK);
 r=zeros(p.nZZ,p.nKK);
@@ -37,28 +38,32 @@ while err>p.tol && iter<p.maxiter
     iter=iter+1;
     V_aux=V;
     for d_1=1:p.nzz
-        for d_3=1:p.nZZ
-            for d_4=1:p.nKK
-                c_oo=reshape(c_aux(:,:,:,d_4),p.nzz*p.nZZ,p.naa);
-                EUc= (1+r(d_3,d_4))*m.P(d_1*d_3+(d_1-d_3)*(d_1>d_3),:)*c_oo.^(-p.sigma);
+        for d_2=1:p.naa
+            for d_3=1:p.nZZ
+                for d_4=1:p.nKK
+                c_oo=reshape(c_aux(:,d_2,:,d_4),p.nzz*p.nZZ,1);
+                EUc= m.P(d_1*d_3+(d_1-d_3)*(d_1>d_3),:)*((1+ [repmat(r(1,d_4),p.nzz,1); repmat(r(2,d_4),p.nzz,1)]).*c_oo.^(-p.sigma));
                 Ucp= (p.beta*EUc).^(-1/p.sigma);
-                a=(Ucp + m.a_grid - m.z_grid(d_1)*w(d_3,d_4))/(1+r(d_3,d_4));
-                g_a(d_1,:,d_3,d_4)=interp1(a,m.a_grid,m.a_grid,'linear','extrap');
-                for d_2=1:p.naa
-                    if g_a(d_1,d_2,d_3,d_4)<m.a_grid(1)
-                        g_a(d_1,d_2,d_3,d_4)=m.a_grid(1);
-                    elseif g_a(d_1,d_2,d_3,d_4)>m.a_grid(end)
-                        g_a(d_1,d_2,d_3,d_4)=m.a_grid(end);
-                    end
+                a(d_1,d_2,d_3,d_4)=(Ucp + m.a_grid(d_2) - m.z_grid(d_1)*w(d_3,d_4))/(1+r(d_3,d_4));
                 end
-                g_c(d_1,:,d_3,d_4)=m.z_grid(d_1)*w(d_3,d_4) + (1+r(d_3,d_4))*m.a_grid - g_a(d_1,:,d_3,d_4);
-                V_oo=utility(g_c(d_1,:,d_3,d_4),p.sigma)+p.beta*m.P(d_1*d_3+(d_1-d_3)*(d_1>d_3),:)*reshape(V_aux(:,:,:,d_4),p.nzz*p.nZZ,p.naa);
-                V(d_1,:,d_3,d_4)=interp1(a,V_oo,m.a_grid,'linear','extrap');                
              end
         end
-    end
+    end                
+                
+                g_a(d_1,:,d_3,d_4)=interpn(m.z_grid,a(d_1,:,d_3,d_4),m.Z_grid,m.K_grid,'linear');
+            for d_2=1:p.naa
+                if g_a(d_1,d_2,d_3,d_4)<m.a_grid(1)
+                    g_a(d_1,d_2,d_3,d_4)=m.a_grid(1);
+                elseif g_a(d_1,d_2,d_3,d_4)>m.a_grid(end)
+                    g_a(d_1,d_2,d_3,d_4)=m.a_grid(end);
+                end
+            end
+            g_c(d_1,:,d_3,d_4)=m.z_grid(d_1)*w(d_3,d_4) + (1+r(d_3,d_4))*m.a_grid - g_a(d_1,:,d_3,d_4);
+            V_oo=utility(g_c(d_1,:,d_3,d_4),p.sigma)+p.beta*m.P(d_1*d_3+(d_1-d_3)*(d_1>d_3),:)*reshape(V_aux(:,:,:,d_4),p.nzz*p.nZZ,p.naa);
+            V(d_1,:,d_3,d_4)=interp1(a,V_oo,m.a_grid,'linear','extrap');   
+
     if p.algo==0
-        err=max(max(max(max(abs(V-V_aux)))));
+        err=max((abs(V(:)-V_aux(:))));
     elseif p.algo==1
         err=max(max(max(max(abs(c_aux-g_c)))));
     else

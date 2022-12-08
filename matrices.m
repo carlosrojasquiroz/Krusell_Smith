@@ -5,12 +5,13 @@ function m=matrices(p)
 m.a_grid=gridspec(p.Amin,p.Amax,p.naa,1); % assets grid points (log-spaced)
 m.z_grid=[0.1 1.0]; % idiosyncratic productivity grid points 
 m.Pi=[0.9 0.1; 0.1 0.9]; % idiosyncratic productivity transition matrix
-m.mu=stationarydistZ(p,m.Pi); % stationary distribution of idiosyncratic shocks
+m.mu=stationarydist(p,p.nzz,m.Pi,1); % stationary distribution of idiosyncratic shocks
 m.Z_grid=[0.99 1.01]; % aggregate productivity grid points 
 m.PZ=[0.5 0.5; 0.1 0.9]; % aggregate productivity transition matrix
+m.mU=stationarydist(p,p.nZZ,m.PZ,1); % stationary distribution of aggregate shocks
 m.P=kron(m.PZ,m.Pi);  % matrix of transition probabilities
 m.K_grid=gridspec(3,7,p.nKK,0); % aggregate capital grid points (linearly-spaced)
-m.Zsim=simulshocks(p,m); % p.simulT # of simulated aggregate shocks
+[m.Zsim,m.agshock]=simulshocks(p,m); % p.simulT # of simulated aggregate shocks
 m.B=[0 1 0 1]; % Initial vector of coefficients B of the ALM
 %---------------------------------------------------------------------------------------------------------------------------
 % Initial assets function (a')

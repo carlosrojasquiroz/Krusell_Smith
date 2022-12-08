@@ -1,4 +1,4 @@
-function Z=simulshocks(p,m)
+function [Z,agshock]=simulshocks(p,m)
 agshock=zeros(1,p.simulT);
 agshock(1)=1; 
 
